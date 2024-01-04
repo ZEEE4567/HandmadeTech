@@ -11,7 +11,7 @@ function UserService(UserModel) {
         findUser,
         findAll,
         findUserById,
-        autorize,
+        authorize,
         update
     };
 
@@ -143,7 +143,7 @@ function UserService(UserModel) {
         return bcrypt.compare(password, hash);
     }
 
-    function autorize(scopes) {
+    function authorize(scopes) {
         return (request, response, next) => {
 
             const { roleUser } = request; //Este request só tem o roleUser porque o adicionamos no ficheiro players

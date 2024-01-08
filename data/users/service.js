@@ -133,12 +133,12 @@ function UserService(UserModel) {
         });
     }
 
-    //devolver a password encryptada
+
     function createPassword(user) {
         return bcrypt.hash(user.password, config.saltRounds);
     }
 
-    //devolver se a password é ou não a mesma
+
     function comparePassword(password, hash) {
         return bcrypt.compare(password, hash);
     }

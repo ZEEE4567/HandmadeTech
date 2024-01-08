@@ -8,6 +8,7 @@ const cartItemSchema = new mongoose.Schema({
 const cartSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   items: [cartItemSchema],
+  total: { type: Number, default: 0 },
 });
 
 const Cart = mongoose.model('Cart', cartSchema);

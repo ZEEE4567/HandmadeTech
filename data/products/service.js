@@ -35,16 +35,17 @@ function ProductService(ProductModel) {
               resolve(products);
           });
       });
-      const totalProducts = await ProductModel.count();
-      return await Promise.resolve({
-          data: products_1,
-          pagination: {
-              pageSize: limit,
-              page: Math.floor(skip / limit),
-              hasMore: skip + limit < totalProducts,
-              total: totalProducts,
-          },
-      });
+   const totalProducts = await ProductModel.count();
+      return {
+        data: products_1,
+        pagination: {
+          pageSize: limit,
+          page: Math.floor(skip / limit),
+          hasMore: skip + limit < totalProducts,
+          total: totalProducts,
+        },
+      };
+
   }
 
   function findProductsByCategory(category) {

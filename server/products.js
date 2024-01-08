@@ -36,9 +36,8 @@ const ProductsRouter = () => {
           next();
         });
     })
-    .get(
-      Users.authorize([scopes.Admin, scopes.Member, scopes.NonMember]),
-      function (req, res, next) {
+
+    .get(Users.authorize([scopes.Admin]), function (req, res, next) {
         console.log("get all products");
 
         const pageLimit = req.query.limit ? parseInt(req.query.limit) : 5;
@@ -101,7 +100,6 @@ const ProductsRouter = () => {
           next();
         });
     });
-
   return router;
 };
 

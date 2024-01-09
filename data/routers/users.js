@@ -1,8 +1,8 @@
 const bodyParser = require("body-parser");
 const express = require("express");
-const Users = require("../data/users");
-const scopes = require("../data/users/scopes");
-const VerifyToken = require("../middleware/Token");
+const Users = require("../users");
+const scopes = require("../users/scopes");
+const VerifyToken = require("../../middleware/token");
 const cookieParser = require("cookie-parser");
 const User = require("../data/users/users");
 

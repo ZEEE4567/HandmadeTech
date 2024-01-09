@@ -1,9 +1,9 @@
 const bodyParser = require("body-parser");
 const express = require("express");
-const Products = require("../data/products");
-const Users = require("../data/users");
-const scopes = require("../data/users/scopes");
-const VerifyToken = require("../middleware/Token");
+const Products = require("../products");
+const Users = require("../users");
+const scopes = require("../users/scopes");
+const VerifyToken = require("../../middleware/token");
 const cookieParser = require("cookie-parser");
 
 const ProductsRouter = () => {

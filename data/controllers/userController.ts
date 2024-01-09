@@ -1,10 +1,33 @@
-const config = require("../../config");
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcrypt");
-const { use } = require("bcrypt/promises");
+import { User } from "../models/users";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
 
-function UserService(UserModel) {
-    let service = {
+interface User {
+    name: string;
+    password: string;
+    role: {
+        scopes: string[];
+    };
+}
+
+interface Token {
+    auth: boolean;
+    token: string;
+}
+
+interface UserService {
+    create(user: User): Promise<any>;
+    createToken(user: User): Token;
+    verifyToken(token: string): Promise<any>;
+    findUser(params: { name: string; password: string; isQrCode: boolean }): Promise<any>;
+    findAll(pagination: { limit: number; skip: number }): Promise<any>;
+    findUserById(id: string): Promise<any>;
+    authorize(scopes: string[]): (request: any, response: any, next: any) => void;
+    update(id: string, user: User): Promise<any>;
+}
+
+function UserService(UserModel: User): UserService {
+    let service: UserService = {
         create,
         createToken,
         verifyToken,
@@ -12,11 +35,11 @@ function UserService(UserModel) {
         findAll,
         findUserById,
         authorize,
-        update
+        update,
     };
 
-    function create(user) {
-        return createPassword(user).then((hashPassword, err) => {
+    function create(user: User): Promise<any> {
+        return createPassword(user).then((hashPassword: string, err: any) => {
             if (err) {
                 return Promise.reject("Not saved the user");
             }
@@ -26,12 +49,12 @@ function UserService(UserModel) {
                 password: hashPassword,
             };
 
-            let newUser = UserModel(newUserWithPassword);
+            let newUser = User(newUserWithPassword);
             return save(newUser);
         });
     }
 
-    function createToken(user) {
+    function createToken(user: User): Token {
         let token = jwt.sign({ id: user._id, name: user.name, role: user.role.scopes }, config.secret, {
             expiresIn: config.expiresPassword,
         });
@@ -39,8 +62,7 @@ function UserService(UserModel) {
         return { auth: true, token };
     }
 
-
-    function verifyToken(token) {
+    function verifyToken(token: string): Promise<any> {
         return new Promise((resolve, reject) => {
             jwt.verify(token, config.secret, (err, decoded) => {
                 if (err) {
@@ -51,10 +73,10 @@ function UserService(UserModel) {
         });
     }
 
-    function save(model) {
+    function save(model: any): Promise<any> {
         return new Promise(function (resolve, reject) {
             // do a thing, possibly async, then…
-            model.save(function (err) {
+            model.save(function (err: any) {
                 if (err) reject(err);
 
                 resolve({
@@ -65,20 +87,20 @@ function UserService(UserModel) {
         });
     }
 
-    function update(id, user) {
+    function update(id: string, user: User): Promise<any> {
         console.log('user', user);
         return new Promise(function (resolve, reject) {
             console.log('user', user);
-            UserModel.findByIdAndUpdate(id, user, function (err, userUpdated) {
+            UserModel.findByIdAndUpdate(id, user, function (err: any, userUpdated: any) {
                 if (err) reject('Dont updated User');
                 resolve(userUpdated);
             });
         });
     }
 
-    function findUserById(id) {
+    function findUserById(id: string): Promise<any> {
         return new Promise(function (resolve, reject) {
-            UserModel.findById(id, function (err, user) {
+            UserModel.findById(id, function (err: any, user: any) {
                 if (err) reject(err);
 
                 resolve(user);
@@ -86,9 +108,9 @@ function UserService(UserModel) {
         });
     }
 
-    function findUser({ name, password, isQrCode }) {
+    function findUser({ name, password, isQrCode }: { name: string; password: string; isQrCode: boolean }): Promise<any> {
         return new Promise(function (resolve, reject) {
-            UserModel.findOne({ name }, function (err, user) {
+            UserModel.findOne({ name }, function (err: any, user: any) {
                 if (err) reject(err);
                 //object of all users
 
@@ -109,11 +131,11 @@ function UserService(UserModel) {
         });
     }
 
-    function findAll(pagination) {
+    function findAll(pagination: { limit: number; skip: number }): Promise<any> {
         const { limit, skip } = pagination;
 
         return new Promise(function (resolve, reject) {
-            UserModel.find({}, {}, { skip, limit }, function (err, users) {
+            UserModel.find({}, {}, { skip, limit }, function (err: any, users: any) {
                 if (err) reject(err);
 
                 resolve(users);
@@ -133,19 +155,16 @@ function UserService(UserModel) {
         });
     }
 
-
-    function createPassword(user) {
+    function createPassword(user: User): Promise<string> {
         return bcrypt.hash(user.password, config.saltRounds);
     }
 
-
-    function comparePassword(password, hash) {
+    function comparePassword(password: string, hash: string): Promise<boolean> {
         return bcrypt.compare(password, hash);
     }
 
-    function authorize(scopes) {
+    function authorize(scopes: string[]): (request: any, response: any, next: any) => void {
         return (request, response, next) => {
-
             const { roleUser } = request; //Este request só tem o roleUser porque o adicionamos no ficheiro players
             // console.log("roleUser:", roleUser);
             // console.log("scopes:", scopes);
@@ -162,4 +181,4 @@ function UserService(UserModel) {
     return service;
 }
 
-module.exports = UserService;
+export default UserService;

@@ -1,5 +1,38 @@
-function ProductService(ProductModel) {
-    let service = {
+import {Model} from 'mongoose';
+
+interface Product {
+    // Define the properties of a product
+}
+
+interface Pagination {
+    limit: number;
+    skip: number;
+}
+
+interface ProductService {
+    create(product: Product): Promise<{ message: string; product: Model<Product> }>;
+
+    findAll(pagination: Pagination): Promise<{
+        data: Model<Product>[];
+        pagination: {
+            pageSize: number;
+            page: number;
+            hasMore: boolean;
+            total: number;
+        };
+    }>;
+
+    findById(productId: string): Promise<Model<Product>>;
+
+    findProductsByCategory(category: string): Promise<Model<Product>[]>;
+
+    update(id: string, product: Product): Promise<Model<Product>>;
+
+    removeById(id: string): Promise<void>;
+}
+
+function ProductService(ProductModel: Model<Product>): ProductService {
+    let service: ProductService = {
         create,
         findAll,
         findById,
@@ -8,12 +41,12 @@ function ProductService(ProductModel) {
         removeById,
     };
 
-    function create(product) {
+    function create(product: Product): Promise<{ message: string; product: Model<Product> }> {
         let newProduct = ProductModel(product);
         return save(newProduct);
     }
 
-    function save(model) {
+    function save(model: Model<Product>): Promise<{ message: string; product: Model<Product> }> {
         return new Promise(function (resolve, reject) {
             model.save(function (err) {
                 if (err) reject("There is a problem with registering the product");
@@ -26,7 +59,15 @@ function ProductService(ProductModel) {
         });
     }
 
-    async function findAll(pagination) {
+    async function findAll(pagination: Pagination): Promise<{
+        data: Model<Product>[];
+        pagination: {
+            pageSize: number;
+            page: number;
+            hasMore: boolean;
+            total: number;
+        };
+    }> {
         const {limit, skip} = pagination;
 
         const products_1 = await new Promise(function (resolve, reject) {
@@ -46,24 +87,22 @@ function ProductService(ProductModel) {
                 total: totalProducts,
             },
         };
-
     }
 
-    function findById(productId) {
+    function findById(productId: string): Promise<Model<Product>> {
         return new Promise(function (resolve, reject) {
-            ProductModel.findById(productId), function (err, products) {
+            ProductModel.findById(productId, function (err, products) {
                 if (err) reject(err);
 
                 if (!products) {
                     reject("Products not found");
                 }
                 resolve(products);
-            }
+            });
         });
     }
 
-
-    function findProductsByCategory(category) {
+    function findProductsByCategory(category: string): Promise<Model<Product>[]> {
         return new Promise(function (resolve, reject) {
             ProductModel.find({category}, function (err, products) {
                 if (err) reject(err);
@@ -77,20 +116,16 @@ function ProductService(ProductModel) {
         });
     }
 
-    function update(id, product) {
+    function update(id: string, product: Product): Promise<Model<Product>> {
         return new Promise(function (resolve, reject) {
-            ProductModel.findByIdAndUpdate(
-                id,
-                product,
-                function (err, productUpdated) {
-                    if (err) reject("Product update failed");
-                    resolve(productUpdated);
-                }
-            );
+            ProductModel.findByIdAndUpdate(id, product, function (err, productUpdated) {
+                if (err) reject("Product update failed");
+                resolve(productUpdated);
+            });
         });
     }
 
-    function removeById(id) {
+    function removeById(id: string): Promise<void> {
         return new Promise(function (resolve, reject) {
             ProductModel.findByIdAndRemove(id, function (err) {
                 if (err)
@@ -106,4 +141,4 @@ function ProductService(ProductModel) {
     return service;
 }
 
-module.exports = ProductService;
+export default ProductService;

@@ -1,3 +1,4 @@
+/*
 import {Model} from 'mongoose';
 
 interface Product {
@@ -142,3 +143,5 @@ function ProductService(ProductModel: Model<Product>): ProductService {
 }
 
 export default ProductService;
+
+ */

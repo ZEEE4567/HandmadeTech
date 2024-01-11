@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
 
-interface IProduct extends Document {
+export interface IProduct extends Document {
   name: string;
   image: string;
   description: string;
@@ -10,7 +10,7 @@ interface IProduct extends Document {
 }
 
 
-const ProductSchema: Schema = new Schema({
+export const ProductSchema: Schema = new Schema({
   name: { type: String, required: true },
   image: { type: String, required: true },
   description: { type: String, required: true},

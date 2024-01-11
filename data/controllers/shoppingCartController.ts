@@ -1,4 +1,4 @@
-import {Model} from 'mongoose';
+/*import {Model} from 'mongoose';
 
 interface ShoppingCartItem {
     product: string;
@@ -122,4 +122,4 @@ function ShoppingCartService(ShoppingCartModel: Model<ShoppingCart>): ShoppingCa
     return service;
 }
 
-export default ShoppingCartService;
+export default ShoppingCartService;*/

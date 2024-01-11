@@ -1,22 +1,30 @@
 import mongoose, { Document, Schema } from "mongoose";
-import {scopes} from "../users/scopes";
+import jwt from "jsonwebtoken";
+import config from "../../config";
 
-interface Role {
+
+export const scopes = {
+    Admin: 'admin',
+    Member: 'member',
+    NonMember: 'notMember',
+    Anonymous: 'anonymous',
+};
+interface IRole {
     name: string;
     scopes: (typeof scopes.Admin | typeof scopes.Member | typeof scopes.NonMember | typeof scopes.Anonymous)[];
 }
 
-interface IUser extends Document {
+export interface IUser extends Document {
     name: string;
     email: string;
     password: string;
-    role: Role;
+    role: IRole;
     age?: number;
     address: string;
     country: string;
 }
 
-const RoleSchema: Schema<Role> = new Schema({
+export const RoleSchema: Schema<IRole> = new Schema({
     name: { type: String, required: true },
     scopes: [
         {
@@ -26,7 +34,7 @@ const RoleSchema: Schema<Role> = new Schema({
     ],
 });
 
-const UserSchema: Schema<IUser> = new Schema({
+export const UserSchema: Schema<IUser> = new Schema({
     name: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
@@ -35,6 +43,8 @@ const UserSchema: Schema<IUser> = new Schema({
     address: { type: String, required: true },
     country: { type: String, required: true },
 });
+
+
 
 export const User = mongoose.model<IUser>("User", UserSchema);
 

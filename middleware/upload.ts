@@ -1,4 +1,4 @@
-import path from "path";
+/*import path from "path";
 import * as fs from "fs";
 
 
@@ -19,4 +19,4 @@ const saveImage = async (req: { body: { base64image: string } }, next: (error: E
     }
 };
 
-export default saveImage;
+export default saveImage;*/

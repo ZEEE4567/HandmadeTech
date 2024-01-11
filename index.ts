@@ -1,9 +1,8 @@
-import cors from 'cors';
 import http from 'http';
-import path from 'path';
-import express, {Express} from 'express';
+import path from "path";
+import express, { Express } from 'express';
 import mongoose from 'mongoose';
-import SocketIo from 'socket.io';
+import { Server } from 'socket.io';
 
 import config from './config';
 import router from './router';
@@ -15,17 +14,13 @@ const port: number = 3000;
 
 mongoose.set('strictQuery', false)
     .connect(config.db)
-    .then(() => console.log('Conection successful!'))
+    .then(() => console.log('Connection successful!'))
     .catch((err: Error) => console.error(err));
 
-const server: http.Server = http.createServer(app);
-const io: SocketIo.Server = SocketIo(server, {
-    cors: {
-        origin: 'https://*:*',
-    },
-});
+const httpServer = http.createServer(app);
+const io = new Server(httpServer);
 
-io.on('connection', (socket: SocketIo.Socket) => {
+io.on('connection', (socket) => {
     console.log('Socket, new connection', socket.id);
 
     socket.on('disconnect', () => {
@@ -37,6 +32,6 @@ io.on('connection', (socket: SocketIo.Socket) => {
 app.use(router.init(io));
 app.use('/images', express.static(path.join(__dirname, 'images')));
 
-server.listen(port, hostname, () => {
+httpServer.listen(port, hostname, () => {
     console.log(`Server running at http://${hostname}:${port}`);
 });

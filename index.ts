@@ -10,7 +10,7 @@ import router from './router';
 const app: Express = express();
 
 const hostname: string = '127.0.0.1';
-const port: number = 3000;
+const port: number = 5000;
 
 mongoose.set('strictQuery', false)
     .connect(config.db)
@@ -30,7 +30,8 @@ io.on('connection', (socket) => {
 });
 
 app.use(router.init(io));
-app.use('/images', express.static(path.join(__dirname, 'images')));
+
+//app.use('/images', express.static(path.join(__dirname, 'images')));
 
 httpServer.listen(port, hostname, () => {
     console.log(`Server running at http://${hostname}:${port}`);

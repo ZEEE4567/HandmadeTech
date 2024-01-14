@@ -3,10 +3,6 @@ import config from "../../config";
 import jwt from "jsonwebtoken";
 import * as bcrypt from 'bcrypt';
 
-
-
-
-
 export const create = async (user: IUser): Promise<any> => {
     try {
         const hashPassword = await createPassword(user);
@@ -19,8 +15,7 @@ export const create = async (user: IUser): Promise<any> => {
         return await save(newUser);
     } catch (err) {
         console.error(err);
-        console.log(err)
-        throw new Error("Not saved the user");
+        throw new Error("There was a problem registering the user.");
     }
 };
 
@@ -28,25 +23,30 @@ export const createToken = (user: IUser): { auth: boolean; token: string }=> {
     let token = jwt.sign({id: user._id, name: user.name, role: user.role.scopes}, config.secret, {
         expiresIn: config.expiresPassword,
     });
-
     return {auth: true, token};
 };
 
-export const verifyToken = (user: IUser, token: string): Promise<any> => {
+export const verifyToken = (token: string): Promise<any> => {
     return new Promise((resolve, reject) => {
         jwt.verify(token, config.secret, (err, decoded) => {
             if (err) {
                 reject(err);
+            } else if (typeof decoded === 'object' && 'id' in decoded) {
+                // If decoded is an object and has an 'id' property, return the id
+                return resolve(decoded.id);
+            } else {
+                reject(new Error('Invalid token'));
             }
-            return resolve(decoded);
         });
     });
 };
 
+
+
 function save(model: IUser): Promise<{ message: string; user: IUser }> {
     return new Promise(async function (resolve, reject) {
         try {
-            // Check if the user already exists
+
             const existingUser = await findUserByEmail(model.email);
             if (existingUser) {
                 console.log('User already exists');
@@ -54,7 +54,6 @@ function save(model: IUser): Promise<{ message: string; user: IUser }> {
                 return;
             }
 
-            // Save the new user
             model.save(function (err) {
                 if (err) {
                     reject('There is a problem with registering the user');
@@ -89,7 +88,6 @@ export function comparePassword(password: string, hash: string): Promise<boolean
     return bcrypt.compare(password, hash);
 }
 
-
 export const findAll = async (): Promise<any> => {
 
     try {
@@ -115,6 +113,16 @@ export const findUserByEmail = (email: string): Promise<any> => {
         });
     });
 }
+export const findUserByUsername = (username: string): Promise<any> => {
+    return new Promise((resolve, reject) => {
+        User.findOne({ username }, function (err: any, user: any) {
+            if (err) reject(err);
+            console.error('Invalid Credentials')
+            resolve(user);
+        });
+    });
+}
+
 
 export const update = async (userId: string, body: any): Promise<any> => {
     try {
@@ -124,8 +132,12 @@ export const update = async (userId: string, body: any): Promise<any> => {
             throw new Error("User not found");
         }
         user.name = body.name;
+        user.username = body.username;
         user.email = body.email;
         user.role = body.role;
+        user.age = body.age;
+        user.address = body.address;
+        user.country = body.country;
         await user.save();
 
         return { message: "User updated", user };
@@ -139,33 +151,47 @@ export const findUserById = (userId: string): Promise<any> => {
     return new Promise((resolve, reject) => {
         User.findById(userId, function (err: any, user: any) {
             if (err) reject(err);
+            console.error(err)
 
             resolve(user);
         });
     });
 };
 
-//TODO: Check the authorize function (includes undefined)
-export const authorize = (scopes: string[]): (request: any, response: any, next: any) => Promise<void> => {
-    return async (request, response, next) => {
+export const deleteUserById = (userId: string): Promise<any> => {
+    return new Promise((resolve, reject) => {
+        User.findByIdAndDelete(userId, function (err: any, user: any) {
+            if (err) reject(err);
+            resolve(user);
+        });
+    });
+};
+
+export const authorize = (scopes: string[]) => {
+    return async (req: any, res: any, next: any) => {
         try {
-            const { roleUser } = request;
-            const hasAuthorization = scopes.some(scope => roleUser.includes(scope));
+            const token = req.cookies.token?.token;
+            const userId = await verifyToken(token);
 
-            console.log(scopes);
+            const user = await findUserById(userId);
 
-            if (roleUser && hasAuthorization) {
-                next();
-            } else {
-                response.status(403).json({ message: "Forbidden" });
+            if (!user) {
+                throw new Error('User not found');
             }
+
+            if (!scopes.some(scope => user.role.scopes.includes(scope))) {
+                throw new Error('User not authorized');
+            }
+
+            req.user = user;
+            next();
         } catch (err) {
             console.error(err);
-            console.log('Scopes', scopes)
-            response.status(500).json({ message: "Internal Server Error" });
+            res.status(401).json({ message: 'User not authorized' });
         }
     };
 };
+
 
 
 

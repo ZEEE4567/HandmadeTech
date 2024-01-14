@@ -1,147 +1,101 @@
-/*
-import {Model} from 'mongoose';
+import { Request, Response } from 'express';
+import * as productService from '../services/productService';
+import {productCategories} from "../scopes/productCategories";
 
-interface Product {
-    // Define the properties of a product
+
+export const getProducts = async (req:Request, res:Response) => {
+    try {
+        const products = await productService.findAllProducts();
+        console.log('PARAMS', req.params);
+        res.json(products);
+        console.log('Get all products');
+    } catch (err) {
+        if (err instanceof Error) {
+            res.status(500).json({ message: err.message });
+        } else {
+            // handle non-Error objects or throw an exception
+            res.status(500).json({ message: 'An error occurred' });
+        }
+    }
 }
 
-interface Pagination {
-    limit: number;
-    skip: number;
+export const getProductById = async (req:Request, res:Response) => {
+    try {
+        const product = await productService.findProductById(req.params.id);
+        res.json(product);
+    } catch (err) {
+        if (err instanceof Error) {
+            res.status(500).json({ message: err.message });
+        } else {
+            // handle non-Error objects or throw an exception
+            res.status(500).json({ message: 'An error occurred' });
+        }
+    }
 }
 
-interface ProductService {
-    create(product: Product): Promise<{ message: string; product: Model<Product> }>;
-
-    findAll(pagination: Pagination): Promise<{
-        data: Model<Product>[];
-        pagination: {
-            pageSize: number;
-            page: number;
-            hasMore: boolean;
-            total: number;
-        };
-    }>;
-
-    findById(productId: string): Promise<Model<Product>>;
-
-    findProductsByCategory(category: string): Promise<Model<Product>[]>;
-
-    update(id: string, product: Product): Promise<Model<Product>>;
-
-    removeById(id: string): Promise<void>;
+export const createProduct = async (req:Request, res:Response) => {
+    try {
+        const product = await productService.createProduct(req.body);
+        res.json(product);
+        console.log('Create product', product);
+    } catch (err) {
+        if (err instanceof Error) {
+            res.status(500).json({ message: err.message });
+        } else {
+            res.status(500).json({ message: 'An error occurred' });
+        }
+    }
 }
 
-function ProductService(ProductModel: Model<Product>): ProductService {
-    let service: ProductService = {
-        create,
-        findAll,
-        findById,
-        findProductsByCategory,
-        update,
-        removeById,
-    };
-
-    function create(product: Product): Promise<{ message: string; product: Model<Product> }> {
-        let newProduct = ProductModel(product);
-        return save(newProduct);
+export const updateProduct = async (req:Request, res:Response) => {
+    try {
+        const product = await productService.update(req.params.id, req.body);
+        res.json(product);
+        console.log('Update product', product);
+    } catch (err) {
+        if (err instanceof Error) {
+            res.status(500).json({ message: err.message });
+        } else {
+            res.status(500).json({ message: 'An error occurred' });
+        }
     }
-
-    function save(model: Model<Product>): Promise<{ message: string; product: Model<Product> }> {
-        return new Promise(function (resolve, reject) {
-            model.save(function (err) {
-                if (err) reject("There is a problem with registering the product");
-
-                resolve({
-                    message: "Product Created",
-                    product: model,
-                });
-            });
-        });
-    }
-
-    async function findAll(pagination: Pagination): Promise<{
-        data: Model<Product>[];
-        pagination: {
-            pageSize: number;
-            page: number;
-            hasMore: boolean;
-            total: number;
-        };
-    }> {
-        const {limit, skip} = pagination;
-
-        const products_1 = await new Promise(function (resolve, reject) {
-            ProductModel.find({}, {}, {skip, limit}, function (err, products) {
-                if (err) reject(err);
-
-                resolve(products);
-            });
-        });
-        const totalProducts = await ProductModel.count();
-        return {
-            data: products_1,
-            pagination: {
-                pageSize: limit,
-                page: Math.floor(skip / limit),
-                hasMore: skip + limit < totalProducts,
-                total: totalProducts,
-            },
-        };
-    }
-
-    function findById(productId: string): Promise<Model<Product>> {
-        return new Promise(function (resolve, reject) {
-            ProductModel.findById(productId, function (err, products) {
-                if (err) reject(err);
-
-                if (!products) {
-                    reject("Products not found");
-                }
-                resolve(products);
-            });
-        });
-    }
-
-    function findProductsByCategory(category: string): Promise<Model<Product>[]> {
-        return new Promise(function (resolve, reject) {
-            ProductModel.find({category}, function (err, products) {
-                if (err) reject(err);
-
-                if (!products || products.length === 0) {
-                    reject("Products not found for the given category");
-                }
-
-                resolve(products);
-            });
-        });
-    }
-
-    function update(id: string, product: Product): Promise<Model<Product>> {
-        return new Promise(function (resolve, reject) {
-            ProductModel.findByIdAndUpdate(id, product, function (err, productUpdated) {
-                if (err) reject("Product update failed");
-                resolve(productUpdated);
-            });
-        });
-    }
-
-    function removeById(id: string): Promise<void> {
-        return new Promise(function (resolve, reject) {
-            ProductModel.findByIdAndRemove(id, function (err) {
-                if (err)
-                    reject({
-                        message: "Unable to remove product",
-                    });
-
-                resolve();
-            });
-        });
-    }
-
-    return service;
 }
 
-export default ProductService;
+export const deleteProduct = async (req:Request, res:Response) => {
+    try {
+        const product = await productService.deleteProductById(req.params.id);
+        res.json(product);
+        console.log('Delete product', product);
+    } catch (err) {
+        if (err instanceof Error) {
+            res.status(500).json({ message: err.message });
+        } else {
+            res.status(500).json({ message: 'An error occurred' });
+        }
+    }
+}
 
- */
+export const getProductsByCategory = async (req:Request, res:Response) => {
+    try {
+        const category = req.params.category;
+        const products = await productService.findProductsByCategory(category);
+
+        if (!Object.values(productCategories).includes(category)) {
+            return res.status(404).json({ message: 'Category not found' });
+        }
+
+        if (products.length === 0 ) {
+            return res.status(404).json({ message: 'Products not found' });
+        }
+        console.log(category)
+        res.json(products);
+        console.log('Get all products by category');
+    } catch (err) {
+        if (err instanceof Error) {
+            res.status(500).json({ message: err.message });
+        } else {
+            // handle non-Error objects or throw an exception
+            res.status(500).json({ message: 'An error occurred' });
+        }
+    }
+}

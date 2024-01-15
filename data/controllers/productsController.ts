@@ -1,12 +1,11 @@
 import { Request, Response } from 'express';
 import * as productService from '../services/productService';
-import {productCategories} from "../scopes/productCategories";
+import * as categoryService from '../services/categoryService';
 
 
 export const getProducts = async (req:Request, res:Response) => {
     try {
         const products = await productService.findAllProducts();
-        console.log('PARAMS', req.params);
         res.json(products);
         console.log('Get all products');
     } catch (err) {
@@ -78,11 +77,14 @@ export const deleteProduct = async (req:Request, res:Response) => {
 export const getProductsByCategory = async (req:Request, res:Response) => {
     try {
         const category = req.params.category;
-        const products = await productService.findProductsByCategory(category);
 
-        if (!Object.values(productCategories).includes(category)) {
+        // Check if the category exists
+        const categoryExists = await categoryService.findCategoryByName(category);
+        if (!categoryExists) {
             return res.status(404).json({ message: 'Category not found' });
         }
+
+        const products = await productService.findProductsByCategory(category);
 
         if (products.length === 0 ) {
             return res.status(404).json({ message: 'Products not found' });
@@ -96,6 +98,21 @@ export const getProductsByCategory = async (req:Request, res:Response) => {
         } else {
             // handle non-Error objects or throw an exception
             res.status(500).json({ message: 'An error occurred' });
+        }
+    }
+}
+
+export const getOrders = async (req:Request, res:Response) => {
+    try {
+        const orders = await productService.findAllOrders();
+        res.json(orders);
+        console.log('Get all orders');
+    } catch (err) {
+        if (err instanceof Error) {
+            res.status(500).json({message: err.message});
+        } else {
+            // handle non-Error objects or throw an exception
+            res.status(500).json({message: 'An error occurred'});
         }
     }
 }

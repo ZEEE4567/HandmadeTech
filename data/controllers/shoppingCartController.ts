@@ -1,125 +1,103 @@
-/*import {Model} from 'mongoose';
+import { Request, Response } from 'express';
+import * as cartService from '../services/shoppingCartService';
+import * as userService from "../services/userService";
 
-interface ShoppingCartItem {
-    product: string;
-    quantity: number;
-}
+export const addToCart = async (req: Request, res: Response): Promise<void> => {
+    try {
+        let token = req.cookies.token?.token;
 
-interface ShoppingCart {
-    user: string;
-    items: ShoppingCartItem[];
-}
+        // Verify the token and get the user's ID
+        let userId = await userService.verifyToken(token);
 
-interface ShoppingCartService {
-    addToCart: (userId: string, productId: string, quantity: number) => Promise<{
-        message: string,
-        cart: ShoppingCart
-    }>;
-    viewCart: (userId: string) => Promise<{ message: string, cart: ShoppingCart | null }>;
-    updateCartItem: (userId: string, productId: string, quantity: number) => Promise<{
-        message: string,
-        cart: ShoppingCart
-    }>;
-    removeCartItem: (userId: string, productId: string) => Promise<{ message: string, cart: ShoppingCart }>;
-}
+        const { productId, quantity } = req.body;
 
-function ShoppingCartService(ShoppingCartModel: Model<ShoppingCart>): ShoppingCartService {
-    let service: ShoppingCartService = {
-        addToCart,
-        viewCart,
-        updateCartItem,
-        removeCartItem,
-    };
-
-    async function addToCart(userId: string, productId: string, quantity: number): Promise<{
-        message: string,
-        cart: ShoppingCart
-    }> {
-        try {
-            let cart = await ShoppingCartModel.findOne({user: userId});
-
-            if (!cart) {
-                cart = new ShoppingCartModel({user: userId, items: []});
-            }
-
-            const existingItem = cart.items.find((item) => item.product.toString() === productId);
-
-            if (existingItem) {
-                existingItem.quantity += quantity;
-            } else {
-                cart.items.push({product: productId, quantity});
-            }
-
-            await cart.save();
-
-            return {message: 'Item added to the cart', cart};
-        } catch (error) {
-            console.error(error);
-            throw new Error('Internal Server Error');
+        const cart = await cartService.addToCart(userId, productId, quantity);
+        res.json(cart);
+    } catch (err) {
+        if (err instanceof Error) {
+            res.status(500).json({ message: err.message });
+        } else {
+            res.status(500).json({ message: 'An error occurred' });
         }
     }
-
-    async function viewCart(userId: string): Promise<{ message: string, cart: ShoppingCart | null }> {
-        try {
-            const cart = await ShoppingCartModel.findOne({user: userId});
-
-            if (!cart) {
-                return {message: 'Cart is empty', cart: null};
-            }
-
-            return {message: 'Cart retrieved successfully', cart};
-        } catch (error) {
-            console.error(error);
-            throw new Error('Internal Server Error');
-        }
-    }
-
-    async function updateCartItem(userId: string, productId: string, quantity: number): Promise<{
-        message: string,
-        cart: ShoppingCart
-    }> {
-        try {
-            const cart = await ShoppingCartModel.findOne({user: userId});
-
-            if (!cart) {
-                throw new Error('Cart not found');
-            }
-
-            const existingItem = cart.items.find((item) => item.product.toString() === productId);
-
-            if (!existingItem) {
-                throw new Error('Item not found in the cart');
-            }
-
-            existingItem.quantity = quantity;
-            await cart.save();
-
-            return {message: 'Item quantity updated', cart};
-        } catch (error) {
-            console.error(error);
-            throw new Error('Internal Server Error');
-        }
-    }
-
-    async function removeCartItem(userId: string, productId: string): Promise<{ message: string, cart: ShoppingCart }> {
-        try {
-            const cart = await ShoppingCartModel.findOne({user: userId});
-
-            if (!cart) {
-                throw new Error('Cart not found');
-            }
-
-            cart.items = cart.items.filter((item) => item.product.toString() !== productId);
-            await cart.save();
-
-            return {message: 'Item removed from the cart', cart};
-        } catch (error) {
-            console.error(error);
-            throw new Error('Internal Server Error');
-        }
-    }
-
-    return service;
 }
 
-export default ShoppingCartService;*/
+
+export const removeFromCart = async (req: Request, res: Response): Promise<void> => {
+    try {
+        let token = req.cookies.token?.token;
+
+        let userId = await userService.verifyToken(token);
+
+        const {productId } = req.body;
+
+        const cart = await cartService.removeFromCart(userId, productId);
+        res.json(cart);
+    } catch (err) {
+        if (err instanceof Error) {
+            res.status(500).json({ message: err.message });
+        } else {
+            res.status(500).json({ message: 'An error occurred' });
+        }
+    }
+}
+
+export const purchase = async (req: Request, res: Response): Promise<void> => {
+    try {
+        let token = req.cookies.token?.token;
+
+        // Verify the token and get the user's ID
+        let userId = await userService.verifyToken(token);
+
+        const user = await cartService.purchase(userId); // Call the purchase function
+        res.json(user);
+    } catch (err) {
+        if (err instanceof Error) {
+            res.status(500).json({ message: err.message });
+        } else {
+            res.status(500).json({ message: 'An error occurred' });
+        }
+    }
+}
+
+export const getCart = async (req: Request, res: Response): Promise<void> => {
+    try {
+            let token = req.cookies.token?.token;
+
+            // Verify the token and get the user's ID
+            let userId = await userService.verifyToken(token);
+
+        const cart = await cartService.getCart(userId);
+        res.json(cart);
+    } catch (err) {
+        if (err instanceof Error) {
+            res.status(500).json({ message: err.message });
+        } else {
+            res.status(500).json({ message: 'An error occurred' });
+        }
+    }
+}
+
+export const updateCart = async (req: Request, res: Response): Promise<void> => {
+    try {
+        let token = req.cookies.token?.token;
+
+        // Verify the token and get the user's ID
+        let userId = await userService.verifyToken(token);
+
+        const { productId, quantity } = req.body;
+
+        if (!productId || !quantity) {
+            throw new Error('Product ID and quantity are required');
+        }
+
+        const cart = await cartService.updateCart(userId, productId, quantity);
+        res.json(cart);
+    } catch (err) {
+        if (err instanceof Error) {
+            res.status(500).json({ message: err.message });
+        } else {
+            res.status(500).json({ message: 'An error occurred' });
+        }
+    }
+}

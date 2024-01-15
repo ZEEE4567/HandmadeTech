@@ -2,11 +2,12 @@ import mongoose, { Document, Schema } from "mongoose";
 import { scopes } from "../scopes/userScopes";
 import jwt from "jsonwebtoken";
 import config from "../../config";
+import {IOrder, OrderSchema} from "./orders";
 
 
 interface IRole {
     name: string;
-    scopes: (typeof scopes.Admin | typeof scopes.Logged| typeof scopes.Anonymous)[];
+    scopes: (typeof scopes.Admin | typeof scopes.User)[];
 }
 
 export interface IUser extends Document {
@@ -18,14 +19,16 @@ export interface IUser extends Document {
     age?: number;
     address: string;
     country: string;
+    orders: IOrder[];
 }
 
 export const RoleSchema: Schema<IRole> = new Schema({
-    name: { type: String, required: true },
+    name: { type: String, required: true, default: 'User'},
     scopes: [
         {
             type: String,
-            enum: [scopes.Admin, scopes.Logged, scopes.Anonymous],
+            enum: [scopes.Admin, scopes.User],
+            default: [scopes.User],
         },
     ],
 });
@@ -39,6 +42,7 @@ export const UserSchema: Schema<IUser> = new Schema({
     age: { type: Number },
     address: { type: String, required: true },
     country: { type: String, required: true },
+    orders: [OrderSchema],
 });
 
 

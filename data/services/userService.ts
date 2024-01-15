@@ -2,6 +2,7 @@ import {IUser, User} from "../models/users";
 import config from "../../config";
 import jwt from "jsonwebtoken";
 import * as bcrypt from 'bcrypt';
+import {scopes} from "../scopes/userScopes";
 
 export const create = async (user: IUser): Promise<any> => {
     try {
@@ -11,13 +12,19 @@ export const create = async (user: IUser): Promise<any> => {
             password: hashPassword,
         };
 
-        let newUser =  new User(newUserWithPassword);
+        let newUser = new User(newUserWithPassword);
+
+        // Set the role object with scopes based on the request body, default to 'User'
+        newUser.role = user.role || { scopes: [scopes.User] };
+
         return await save(newUser);
     } catch (err) {
         console.error(err);
         throw new Error("There was a problem registering the user.");
     }
 };
+
+
 
 export const createToken = (user: IUser): { auth: boolean; token: string }=> {
     let token = jwt.sign({id: user._id, name: user.name, role: user.role.scopes}, config.secret, {
@@ -56,6 +63,7 @@ function save(model: IUser): Promise<{ message: string; user: IUser }> {
 
             model.save(function (err) {
                 if (err) {
+                    console.error(err);
                     reject('There is a problem with registering the user');
                     return;
                 }
@@ -131,6 +139,11 @@ export const update = async (userId: string, body: any): Promise<any> => {
         if (!user) {
             throw new Error("User not found");
         }
+
+        if (user.role.name !== 'admin') {
+            delete body.role;
+        }
+
         user.name = body.name;
         user.username = body.username;
         user.email = body.email;

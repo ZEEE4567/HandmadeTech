@@ -4,7 +4,6 @@ import * as userService from '../services/userService';
 import cookieParser from "cookie-parser";
 import * as bodyParser from "body-parser";
 
-
 export const ShoppingCartAPI = (): any => {
     const router = Router();
 
@@ -20,5 +19,6 @@ export const ShoppingCartAPI = (): any => {
     router.put('/cart', userService.authorize(['admin','user']), cartController.updateCart);
     router.get('/cart/purchase', userService.authorize(['admin','user']), cartController.purchase);
 
- return router;
+
+    return router;
 }

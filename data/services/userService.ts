@@ -3,6 +3,8 @@ import config from "../../config";
 import jwt from "jsonwebtoken";
 import * as bcrypt from 'bcrypt';
 import {scopes} from "../scopes/userScopes";
+import {login} from "../controllers/userController";
+import mongoose from "mongoose";
 
 export const create = async (user: IUser): Promise<any> => {
     try {
@@ -14,7 +16,6 @@ export const create = async (user: IUser): Promise<any> => {
 
         let newUser = new User(newUserWithPassword);
 
-        // Set the role object with scopes based on the request body, default to 'User'
         newUser.role = user.role || { scopes: [scopes.User] };
 
         return await save(newUser);
@@ -24,8 +25,6 @@ export const create = async (user: IUser): Promise<any> => {
     }
 };
 
-
-
 export const createToken = (user: IUser): { auth: boolean; token: string }=> {
     let token = jwt.sign({id: user._id, name: user.name, role: user.role.scopes}, config.secret, {
         expiresIn: config.expiresPassword,
@@ -33,30 +32,31 @@ export const createToken = (user: IUser): { auth: boolean; token: string }=> {
     return {auth: true, token};
 };
 
-export const verifyToken = (token: string): Promise<any> => {
-    return new Promise((resolve, reject) => {
-        jwt.verify(token, config.secret, (err, decoded) => {
-            if (err) {
-                reject(err);
-            } else if (typeof decoded === 'object' && 'id' in decoded) {
-                // If decoded is an object and has an 'id' property, return the id
-                return resolve(decoded.id);
-            } else {
-                reject(new Error('Invalid token'));
-            }
+export const verifyToken = async (token: string): Promise<any> => {
+    try {
+        return await new Promise((resolve, reject) => {
+            jwt.verify(token, config.secret, (err, decoded) => {
+                if (err) {
+                    reject(err);
+                } else if (typeof decoded === 'object' && 'id' in decoded) {
+                    return resolve(decoded.id);
+                } else {
+                    reject(new Error('Invalid token'));
+                }
+            });
         });
-    });
+    } catch (err_1) {
+        console.error(err_1);
+        throw new Error('Error verifying token');
+    }
 };
-
-
 
 function save(model: IUser): Promise<{ message: string; user: IUser }> {
     return new Promise(async function (resolve, reject) {
         try {
-
             const existingUser = await findUserByEmail(model.email);
             if (existingUser) {
-                console.log('User already exists');
+                console.log('User already exists with this email');
                 reject('User already exists');
                 return;
             }
@@ -74,7 +74,11 @@ function save(model: IUser): Promise<{ message: string; user: IUser }> {
                 });
             });
         } catch (err) {
-            reject('An error occurred while checking if the user exists');
+            if (err instanceof mongoose.Error) {
+                reject('Mongoose error occurred');
+            } else {
+                reject('An error occurred while checking if the user exists');
+            }
         }
     });
 }
@@ -88,7 +92,6 @@ function createPassword(user: IUser): Promise<string> {
     });
 }
 
-
 export function comparePassword(password: string, hash: string): Promise<boolean> {
     if (!password || !hash) {
         throw new Error('Password or hash is null or undefined');
@@ -96,15 +99,29 @@ export function comparePassword(password: string, hash: string): Promise<boolean
     return bcrypt.compare(password, hash);
 }
 
-export const findAll = async (): Promise<any> => {
-
+export const findAll = async (offset: number = 0, limit: number = 10, sort: string = 'username_asc', filter: string = ''): Promise<any> => {
     try {
-        const users = await User.find({}, {});
-        const totalUsers = await User.count();
+        const [sortField, sortOrder] = sort.split('_');
+        const sortObject = { [sortField]: sortOrder === 'asc' ? 1 : -1 };
+
+        const filterObject = filter ? { username: { $regex: filter, $options: 'i' } } : {};
+
+        const users = await User.find(filterObject).skip(offset).limit(limit).sort(sortObject as { [key: string]: any });
+
+        const totalUsers = await User.countDocuments(filterObject);
+
+        const page = Math.floor(offset / limit) + 1;
+
+        const hasMore = offset + limit < totalUsers;
 
         return {
             data: users,
-            total: totalUsers,
+            pagination: {
+                pageSize: limit,
+                page: page,
+                hasMore: hasMore,
+                total: totalUsers,
+            },
         };
     } catch (err) {
         console.error(err);
@@ -112,23 +129,34 @@ export const findAll = async (): Promise<any> => {
     }
 };
 
-export const findUserByEmail = (email: string): Promise<any> => {
-    return new Promise((resolve, reject) => {
-        User.findOne({ email }, function (err: any, user: any) {
-            if (err) reject(err);
+export const findUserByEmail = async (email: string): Promise<any> => {
+    try {
+        return await new Promise((resolve, reject) => {
+            User.findOne({email}, function (err: any, user: any) {
+                if (err) reject(err);
 
-            resolve(user);
+                resolve(user);
+            });
         });
-    });
+    } catch (err_1) {
+        console.error(err_1);
+        throw new Error('Error finding user by email');
+    }
 }
-export const findUserByUsername = (username: string): Promise<any> => {
-    return new Promise((resolve, reject) => {
-        User.findOne({ username }, function (err: any, user: any) {
-            if (err) reject(err);
-            console.error('Invalid Credentials')
-            resolve(user);
+
+export const findUserByUsername = async (username: string): Promise<any> => {
+    try {
+        return await new Promise((resolve, reject) => {
+            User.findOne({username}, function (err: any, user: any) {
+                if (err) reject(err);
+                console.error('Invalid Credentials');
+                resolve(user);
+            });
         });
-    });
+    } catch (err_1) {
+        console.error(err_1);
+        throw new Error('Error finding user by username');
+    }
 }
 
 
@@ -140,7 +168,7 @@ export const update = async (userId: string, body: any): Promise<any> => {
             throw new Error("User not found");
         }
 
-        if (user.role.name !== 'admin') {
+        if (user.role.name !== 'admin' || 'Admin') {
             delete body.role;
         }
 
@@ -160,24 +188,39 @@ export const update = async (userId: string, body: any): Promise<any> => {
     }
 }
 
-export const findUserById = (userId: string): Promise<any> => {
-    return new Promise((resolve, reject) => {
-        User.findById(userId, function (err: any, user: any) {
-            if (err) reject(err);
-            console.error(err)
-
-            resolve(user);
+export const findUserById = async (userId: string, sort: string = 'date_asc'): Promise<any> => {
+    try {
+        return await new Promise((resolve, reject) => {
+            User.findById(userId, function (err: any, user: any) {
+                if (err) {
+                    console.error(err);
+                    reject('Error finding user by ID');
+                }
+                resolve(user);
+            });
         });
-    });
+    } catch (err) {
+        console.error(err);
+        throw new Error('Error finding user by ID');
+    }
 };
 
-export const deleteUserById = (userId: string): Promise<any> => {
-    return new Promise((resolve, reject) => {
-        User.findByIdAndDelete(userId, function (err: any, user: any) {
-            if (err) reject(err);
-            resolve(user);
+
+export const deleteUserById = async (userId: string): Promise<any> => {
+    try {
+        return await new Promise((resolve, reject) => {
+            User.findByIdAndDelete(userId, function (err: any, user: any) {
+                if (err) {
+                    console.error(err);
+                    reject('Error deleting user by ID');
+                }
+                resolve(user);
+            });
         });
-    });
+    } catch (err_1) {
+        console.error(err_1);
+        throw new Error('Error deleting user by ID');
+    }
 };
 
 export const authorize = (scopes: string[]) => {
@@ -187,6 +230,7 @@ export const authorize = (scopes: string[]) => {
             const userId = await verifyToken(token);
 
             const user = await findUserById(userId);
+
 
             if (!user) {
                 throw new Error('User not found');
@@ -204,9 +248,6 @@ export const authorize = (scopes: string[]) => {
         }
     };
 };
-
-
-
 
 
 

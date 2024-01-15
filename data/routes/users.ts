@@ -3,7 +3,7 @@ import cookieParser from "cookie-parser";
 import * as bodyParser from "body-parser";
 import * as userController from "../controllers/userController";
 import * as userService from "../services/userService";
-import {verifyToken} from "../controllers/userController";
+
 
 
 export const UsersAPI = (): any => {
@@ -20,9 +20,7 @@ export const UsersAPI = (): any => {
     router.get('/users/me',userService.authorize(['admin', 'user']), userController.getProfile);
     router.put('/users/me', userService.authorize(['admin', 'user']), userController.updateSelf);
     router.get('/users/orders', userService.authorize(['admin', 'user']), userController.getPurchaseHistory);
-    //router.post('/users/me/avatar', userController.uploadAvatar, userController.uploadAvatarError, userController.uploadAvatarSuccess);
-    //router.delete('/users/me/avatar', userController.deleteAvatar);
-    //router.get('/users/:id/avatar', userController.getAvatar);
+
 
 
     return router;

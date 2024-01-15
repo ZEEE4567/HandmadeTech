@@ -16,7 +16,13 @@ export const createCategory = async (req:Request, res:Response) => {
 
 export const findAllCategories = async (req:Request, res:Response) => {
     try {
-        const categories = await categoryService.findAllCategories();
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const filter = req.query.filter as string || '';
+
+        const startIndex = (page - 1) * limit;
+
+        const categories = await categoryService.findAllCategories(startIndex, limit, filter);
         res.json(categories);
         console.log('Get all categories');
     } catch (err) {

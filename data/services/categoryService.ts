@@ -23,16 +23,29 @@ export const createCategory = async (body: any) => {
 }
 
 
-export const findAllCategories = async () => {
+export const findAllCategories = async (offset = 0, limit = 10, filter: string = '') => {
     try {
-        const categories = await Category.find();
-        return categories;
-    }
-    catch (err) {
+        // Parse the filter parameter
+        const filterObject = filter ? { name: { $regex: filter, $options: 'i' } } : {};
+
+        const categories = await Category.find(filterObject).skip(offset).limit(limit);
+        const totalCategories = await Category.countDocuments(filterObject);
+        const page = Math.floor(offset / limit) + 1;
+        const hasMore = offset + limit < totalCategories;
+
+        return {
+            data: categories,
+            pagination: {
+                pageSize: limit,
+                page: page,
+                hasMore: hasMore,
+                total: totalCategories,
+            },
+        };
+    } catch (err) {
         throw err;
     }
 }
-
 
 export const findCategoryById = async (categoryId: string) => {
     try {

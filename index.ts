@@ -6,6 +6,7 @@ import { Server } from 'socket.io';
 
 import config from './config';
 import router from './router';
+import * as fs from "fs";
 
 const app: Express = express();
 
@@ -31,7 +32,12 @@ io.on('connection', (socket) => {
 
 app.use(router.init(io));
 
-//app.use('/images', express.static(path.join(__dirname, 'images')));
+const dir = path.resolve(__dirname,  'uploads');
+if (!fs.existsSync(dir)){
+    fs.mkdirSync(dir);
+    console.log('Uploads directory created');
+}
+app.use('/uploads', express.static('uploads'));
 
 httpServer.listen(port, hostname, () => {
     console.log(`Server running at http://${hostname}:${port}`);

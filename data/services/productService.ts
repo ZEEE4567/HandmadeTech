@@ -6,34 +6,25 @@ import {Order} from "../models/orders";
 
 export const createProduct = async (body: any) => {
     try {
-        const product = new Product({
-            name: body.name,
-            imageUrl: body.imageUrl,
-            description: body.description,
-            price: body.price,
-            category: body.category,
-        });
-        await product.save();
-        return product.populate('category');
-    }
-    catch (err) {
-        throw err;
-    }
-}
+        console.log(body); // Log the entire body
 
-//TODO: Implement pagination, sorting, searching and image/document upload functions
-
-
-export const findProductsByCategory = async (categoryName: string) => {
-    try {
-        const category = await Category.findOne({ name: categoryName });
-
-        if (!category) {
-            throw new Error('Category not found');
+        if (!body.productData) {
+            throw new Error('Product data not found in request body');
         }
 
-        const products = await Product.find({ category: category._id }).populate('category');
-        return products;
+        const imageUrl = body.file ? body.file.path : './uploads/';
+        const productData = JSON.parse(body.productData);
+
+        const product = new Product({
+            name: productData.name,
+            imageUrl: imageUrl,
+            description: productData.description,
+            price: productData.price,
+            category: productData.category,
+        });
+
+        await product.save();
+        return product.populate('category');
     }
     catch (err) {
         console.error(err);
@@ -41,6 +32,43 @@ export const findProductsByCategory = async (categoryName: string) => {
     }
 }
 
+
+
+
+export const findProductsByCategory = async (categoryName: string, offset = 0, limit = 10, sort: string = 'name_asc', filter: string = '') => {
+    try {
+        const category = await Category.findOne({ name: categoryName });
+
+        if (!category) {
+            throw new Error('Category not found');
+        }
+
+        // Parse the sort parameter
+        const [sortField, sortOrder] = sort.split('_');
+        const sortObject = { [sortField]: sortOrder === 'asc' ? 1 : -1 };
+
+        // Parse the filter parameter
+        const filterObject = filter ? { name: { $regex: filter, $options: 'i' } } : {};
+
+        const products = await Product.find({ category: category._id, ...filterObject }).skip(offset).limit(limit).sort(sortObject as { [key: string]: any }).populate('category');
+        const totalProducts = await Product.countDocuments({ category: category._id, ...filterObject });
+        const page = Math.floor(offset / limit) + 1;
+        const hasMore = offset + limit < totalProducts;
+
+        return {
+            data: products,
+            pagination: {
+                pageSize: limit,
+                page: page,
+                hasMore: hasMore,
+                total: totalProducts,
+            },
+        };
+    } catch (err) {
+        console.error(err);
+        throw err;
+    }
+}
 
 
 export const deleteProductById = async (productId: string) => {
@@ -53,16 +81,43 @@ export const deleteProductById = async (productId: string) => {
     }
 }
 
-export const findAllProducts = async () => {
+export const findAllProducts = async (offset = 0, limit = 10, sort: string = 'name_asc', filter: string = '', minPrice: number = 0, maxPrice: number = Infinity) => {
     try {
-        const products = await Product.find().populate('category');
-        return products;
-    }
-    catch (err) {
+        const [sortField, sortOrder] = sort.split('_');
+        const sortObject = { [sortField]: sortOrder === 'asc' ? 1 : -1 };
+
+        let filterObject: any = {
+            price: { $gte: minPrice, $lte: maxPrice }
+        };
+
+        if (filter) {
+            filterObject.name = { $regex: filter, $options: 'i' };
+        }
+
+        const products = await Product.find(filterObject).skip(offset).limit(limit).sort(sortObject as { [key: string]: any }).populate('category');
+
+        const totalProducts = await Product.countDocuments(filterObject);
+
+        const page = Math.floor(offset / limit) + 1;
+
+        const hasMore = offset + limit < totalProducts;
+
+        return {
+            data: products,
+            pagination: {
+                pageSize: limit,
+                page: page,
+                hasMore: hasMore,
+                total: totalProducts,
+            },
+        };
+    } catch (err) {
         console.error(err);
         throw err;
     }
 }
+
+
 export const findProductById = async (productId: string) => {
     try {
         const product = await Product.findById(productId).populate('category');
@@ -82,7 +137,7 @@ export const update = async (productId: string, body: any) => {
             throw new Error("Product not found");
         }
         product.name = body.name;
-        product.imageUrl = body.imageUrl;
+        product.imageUrl = body.file.path;
         product.description = body.description;
         product.price = body.price;
         product.category = body.category;
@@ -96,12 +151,31 @@ export const update = async (productId: string, body: any) => {
     }
 }
 
-export const findAllOrders = async () => {
+export const findAllOrders = async (offset = 0, limit = 10, sort: string = 'date_asc', filter: string = '') => {
     try {
-        const orders = await Order.find();
-        return orders;
-    }
-    catch (err) {
+        const [sortField, sortOrder] = sort.split('_');
+        const sortObject = { [sortField]: sortOrder === 'asc' ? 1 : -1 };
+
+        const filterObject = filter ? { 'products.name': { $regex: filter, $options: 'i' } } : {};
+
+        const orders = await Order.find(filterObject).skip(offset).limit(limit).sort(sortObject as { [key: string]: any }).populate('products');
+
+        const totalOrders = await Order.countDocuments(filterObject);
+
+        const page = Math.floor(offset / limit) + 1;
+
+        const hasMore = offset + limit < totalOrders;
+
+        return {
+            data: orders,
+            pagination: {
+                pageSize: limit,
+                page: page,
+                hasMore: hasMore,
+                total: totalOrders,
+            },
+        };
+    } catch (err) {
         console.error(err);
         throw err;
     }

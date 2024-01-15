@@ -1,22 +1,15 @@
-/*import path from "path";
-import * as fs from "fs";
+import multer from 'multer';
+import path from 'path';
 
 
-const saveImage = async (req: { body: { base64image: string } }, next: (error: Error) => void): Promise<string> => {
-    try {
-        const image: string = 'images/' + Date.now() + '.png';
-        const pathFile: string = path.join(__dirname, '/../' + image);
-        const imgdata: string = req.body.base64image;
-        const base64Data: string = imgdata.replace(/^data:([A-Za-z-+/]+);base64,/, '');
-
-        fs.writeFileSync(pathFile, base64Data, {encoding: 'base64'});
-
-        return image;
-    } catch (error) {
-        console.log(error);
-        next(error);
-        throw error;
+export const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        const uploadsDir = path.resolve(__dirname,'..', 'uploads');
+        cb(null, uploadsDir); // Use absolute path for the destination
+    },
+    filename: function (req, file, cb) {
+        cb(null,  file.originalname);
     }
-};
+});
 
-export default saveImage;*/
+export const upload = multer({ storage: storage });

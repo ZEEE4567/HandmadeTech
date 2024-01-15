@@ -6,7 +6,6 @@ export const addToCart = async (req: Request, res: Response): Promise<void> => {
     try {
         let token = req.cookies.token?.token;
 
-        // Verify the token and get the user's ID
         let userId = await userService.verifyToken(token);
 
         const { productId, quantity } = req.body;
@@ -49,10 +48,12 @@ export const purchase = async (req: Request, res: Response): Promise<void> => {
         // Verify the token and get the user's ID
         let userId = await userService.verifyToken(token);
 
-        const user = await cartService.purchase(userId); // Call the purchase function
+        // Ensure the userId is being set in the orders
+        const user = await cartService.purchase(userId ); // Call the purchase function
         res.json(user);
     } catch (err) {
         if (err instanceof Error) {
+            console.error(err)
             res.status(500).json({ message: err.message });
         } else {
             res.status(500).json({ message: 'An error occurred' });
@@ -60,11 +61,10 @@ export const purchase = async (req: Request, res: Response): Promise<void> => {
     }
 }
 
+
 export const getCart = async (req: Request, res: Response): Promise<void> => {
     try {
             let token = req.cookies.token?.token;
-
-            // Verify the token and get the user's ID
             let userId = await userService.verifyToken(token);
 
         const cart = await cartService.getCart(userId);

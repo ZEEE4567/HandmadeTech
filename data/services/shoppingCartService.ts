@@ -58,20 +58,18 @@ export const purchase = async (userId: IUser['_id']): Promise<IUser> => {
         throw new Error('Cart not found');
     }
 
-    // Create a new order
     const newOrderData = {
+        userId,
         products: cart.products,
         quantities: cart.quantities,
         totalPrice: cart.totalPrice,
         date: new Date(),
     };
 
-    // Save the order to the orders collection
     const newOrder = new Order(newOrderData);
     await newOrder.save();
 
 
-    // Add the order to the user's purchase history
     const user = await User.findById(userId);
     if (!user) {
         throw new Error('User not found');
@@ -79,7 +77,6 @@ export const purchase = async (userId: IUser['_id']): Promise<IUser> => {
     user.orders.push(newOrder);
     await user.save();
 
-    // Clear the cart
     cart.products = [];
     cart.quantities = [];
     cart.totalPrice = 0;
@@ -103,7 +100,6 @@ export const getCart = async (userId: IUser['_id']): Promise<ICart> => {
 }
 
 export const updateCart = async (userId: IUser['_id'], productId: IProduct['_id'], quantity: number): Promise<ICart> => {
-    // Fetch the user's cart from the database
     let cart = await Cart.findOne({ userId: userId });
 
     if (!cart) {
@@ -115,18 +111,15 @@ export const updateCart = async (userId: IUser['_id'], productId: IProduct['_id'
         throw new Error('Product not found');
     }
 
-    // Find the index of the product in the cart
     let productIndex = cart.products.indexOf(productId);
     if (!productIndex) {
         throw new Error('Product not found in cart');
     }
 
     if (productIndex !== -1) {
-        // If the product is in the cart, update the quantity
         if (quantity > 0) {
             cart.quantities[productIndex] = quantity;
         } else {
-            // If the quantity is 0 or less, remove the product from the cart
             cart.products.splice(productIndex, 1);
             cart.quantities.splice(productIndex, 1);
         }
@@ -141,8 +134,6 @@ export const updateCart = async (userId: IUser['_id'], productId: IProduct['_id'
         }
     }
 
-
-    // Save the updated cart to the database
     await cart.save();
 
     return cart.populate({ path: 'products', populate: { path: 'category' }});
